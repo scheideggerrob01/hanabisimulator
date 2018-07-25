@@ -1,12 +1,14 @@
 ﻿using System;
-
+using HanabiSimulator.Shared;
 namespace HanabiSimulator
 {
     class Program
     {
         static void Main(string[] args)
         {
-            Console.WriteLine("Hello World!");
+            HanabiGame game = Strategies.RandomStrategy();
+            Console.WriteLine(game);
+            Console.ReadLine();
         }
     }
 }
