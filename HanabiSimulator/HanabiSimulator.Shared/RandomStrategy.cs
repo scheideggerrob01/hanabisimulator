@@ -40,7 +40,7 @@ namespace HanabiSimulator.Shared
             {
                 var playableCards = player.Hand.Where(card => game.IsPlayable(card))
                     .OrderBy(card => card.Number)
-                    //.ThenBy(card => IsDangerCard(game, card))
+                    .ThenBy(card => IsDangerCard(game, card))
                     .ThenByDescending(card => player.Hand.IndexOf(card)).ToArray();
                 if (playableCards.Length == 0)
                     return null;
@@ -81,7 +81,17 @@ namespace HanabiSimulator.Shared
                     game.PlayCard(game.CurrentPlayer, play);
                 else
                 {
-                    game.DiscardCard(game.CurrentPlayer, Logic.PreferredDiscard(game, game.CurrentPlayer));
+                    var discard = Logic.PreferredDiscard(game, game.CurrentPlayer);
+                    (HanabiCard c1, HanabiCard c2) = (new HanabiCard(discard.Number - 1,discard.Color),new HanabiCard(discard.Number-2, discard.Color));
+                    if (game.Players.Select(p=>p.Hand).Count(h => h.ContainsCard(c1) || h.ContainsCard(c2)) >= 1 && game.HintsRemaining > 0) //If the cards necessary to play this one are in people's hands already.
+                    {
+                        game.HintsRemaining--;
+                    }
+                    else
+                    {
+                        game.DiscardCard(game.CurrentPlayer, discard);
+                    }
+
                 }
                 game.NextTurn();
             }
