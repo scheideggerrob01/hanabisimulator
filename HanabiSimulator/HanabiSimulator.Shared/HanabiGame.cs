@@ -89,18 +89,20 @@ namespace HanabiSimulator.Shared
         }
         public void NextTurn()
         {
-            if (Deck.Count == 0 && TurnsRemaining > -1)
+            if (Deck.Count == 0 && TurnsRemaining == -1)
                 TurnsRemaining = PlayerCount;
             else if (TurnsRemaining > -1)
                 TurnsRemaining--;
+            if (TurnsRemaining == 0)
+                Ended = true;
             TurnsCompleted++;
             PlayerTurn = (PlayerTurn + 1) % PlayerCount;
         }
         public bool IsPlayable(HanabiCard card)
         {
-            if (PlayedCards.Count(c => c.Color == card.Color && c.Number == c.Number) >= 1)
+            if (PlayedCards.Count(c => c.Color == card.Color && c.Number == card.Number) >= 1)
                 return false;
-            else if (PlayedCards.Count(c => c.Color == card.Color && c.Number == (c.Number - 1)) >= 1)
+            else if (PlayedCards.Count(c => c.Color == card.Color && c.Number == (card.Number - 1)) >= 1)
                 return true;
             return card.Number == 1;
         }
@@ -117,10 +119,10 @@ namespace HanabiSimulator.Shared
         public bool PlayCard(HanabiPlayer player,HanabiCard card)
         {
             Players[GetPlayerID(player)].Hand.Remove(card);
+            DrawCard(player);
             if (IsPlayable(card))
             {
                 PlayedCards.Add(card);
-                DrawCard(player);
                 if (card.Number == highestCard && HintsRemaining < 8)
                     HintsRemaining++;
                 if(Score == 25)
@@ -142,6 +144,8 @@ namespace HanabiSimulator.Shared
         public void DiscardCard(HanabiPlayer player, HanabiCard card)
         {
             Players[player.ID].Hand.Remove(card);
+            DiscardedCards.Add(card);
+            DrawCard(player);
             if (HintsRemaining < 8)
             {
                 HintsRemaining++;
@@ -157,8 +161,16 @@ namespace HanabiSimulator.Shared
             if (!DeckEmpty && Deck.Count == 0)
             {
                 DeckEmpty = true;
-                TurnsRemaining = PlayerCount;
             }
+        }
+        public string ToPlayerHandString()
+        {
+            string s = "";
+            for(int i = 0; i < PlayerCount;i++)
+            {
+                s += $"Player {i}: {Players[i].Hand.ToCleanString()}\n";
+            }
+            return s;
         }
         public string ToPlayedDiscardedString()
         {
@@ -167,8 +179,9 @@ namespace HanabiSimulator.Shared
         public override string ToString()
         {
             string s = "";
-            s += Deck.ToString() + '\n';
+            s += $"Deck({Deck.Count}): " + Deck.ToCleanString() + '\n';
             s += ToPlayedDiscardedString() + '\n';
+            s += ToPlayerHandString() + '\n';
             return s;
         }
     }
@@ -206,6 +219,15 @@ namespace HanabiSimulator.Shared
                 s += c.ToString();
             }
             return s;
+        }
+        public static bool ContainsCard(this List<HanabiCard> cards,HanabiCard card)
+        {
+            foreach(HanabiCard c in cards)
+            {
+                if (c.Color == card.Color && c.Number == card.Number)
+                    return true;
+            }
+            return false;
         }
         // Shuffle taken from https://stackoverflow.com/questions/273313/randomize-a-listt
         private static Random rng = new Random();
