@@ -59,6 +59,18 @@ namespace HanabiSimulator.Shared
                 }
                 return total;
             }
+            public bool SeesCollision(ref HanabiGame game)
+            {
+                var nextplayer = game.NextPlayer as Mod8HanabiPlayer;
+                if(nextplayer.NextAction.Type == HanabiActionType.Play)
+                {
+                    if(!game.IsPlayable(nextplayer.NextAction.Card))
+                    {
+                        return true;
+                    }
+                }
+                return false;
+            }
             public void DoTurn(ref HanabiGame game)
             {
                 if (this.NextAction.Type == HanabiActionType.Hint)
@@ -75,19 +87,30 @@ namespace HanabiSimulator.Shared
                 }
                 else if (NextAction.Type == HanabiActionType.Play)
                 {
-                    game.PlayCard(this, NextAction.Card);
-                    NextAction = new HanabiAction(HanabiActionType.Hint, null, -1);
+                    if (SeesCollision(ref game) && game.HintsRemaining > 0)
+                    {
+                        GiveClue(ref game);
+                    }
+                    else
+                    {
+                        game.PlayCard(this, NextAction.Card);
+                        NextAction.Type = HanabiActionType.Hint;
+                        NextAction.Card = null;
+                        NextAction.CardIndex = -1;
+                    }
                 }
                 else // Must be discard
                 {
-                    if (PlaysSeen(ref game) >= 2 && game.HintsRemaining > 0)
+                    if ((PlaysSeen(ref game) >= 2 || SeesCollision(ref game)) && game.HintsRemaining > 0)
                     {
                         GiveClue(ref game);
                     }
                     else
                     {
                         game.DiscardCard(this, NextAction.Card);
-                        NextAction = new HanabiAction(HanabiActionType.Hint, null, -1);
+                        NextAction.Type = HanabiActionType.Hint;
+                        NextAction.Card = null;
+                        NextAction.CardIndex = -1;
                     }
                 }
             }

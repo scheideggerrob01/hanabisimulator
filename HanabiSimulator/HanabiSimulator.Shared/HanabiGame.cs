@@ -24,6 +24,7 @@ namespace HanabiSimulator.Shared
         }
         public List<HanabiPlayer> Players { get; set; }
         public HanabiPlayer CurrentPlayer { get { return Players[PlayerTurn]; } }
+        public HanabiPlayer NextPlayer { get { return Players[(PlayerTurn + 1) % PlayerCount]; } }
         public bool Ended { get; set; }
         public bool KeepLog { get; set; }
         public int PlayerTurn { get; set; }
