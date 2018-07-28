@@ -11,7 +11,9 @@ namespace HanabiSimulator.Shared
             public Mod8HanabiPlayer(int playerID) : base(playerID)
             {
                 NextAction = new HanabiAction(HanabiActionType.Hint, null, -1);
+                ShowPlays = false;
             }
+            public bool ShowPlays { get; set; }
             public HanabiAction NextAction { get; set; }
             public void GiveClue(ref HanabiGame game)
             {
@@ -89,7 +91,13 @@ namespace HanabiSimulator.Shared
                     }
                 }
             }
+            public override void Action(HanabiCard card, bool played, bool successful = true)
+            {
+                if(ShowPlays)
+                    Console.WriteLine($" Player {this.ID} {(played ? "Played" : "Discarded")} {card}. {((successful && played) ? "" : "Card was not playable.")}");
+            }
         }
+        [Flags]
         public enum HanabiActionType { Play,Hint,Discard}
         public class HanabiAction
         {
@@ -121,20 +129,27 @@ namespace HanabiSimulator.Shared
             else
                 return i % m + m;
         }
-        public static HanabiGame BasicMod8Strategy(List<HanabiCard> deck = null)
+        public static HanabiGame BasicMod8Strategy(List<HanabiCard> deck = null, bool printMoves = false)
         {
             HanabiGame game = new HanabiGame();
             for(int i = 0; i < game.PlayerCount;i++)
             {
-                game.Players[i] = new Mod8HanabiPlayer(i);
+                game.Players[i] = new Mod8HanabiPlayer(i) { ShowPlays = printMoves };
             }
-            game.CreateDeck();
-            game.ShuffleDeck();
+            if (deck == null)
+            {
+                game.CreateDeck();
+                game.ShuffleDeck();
+            }
+            else
+                game.Deck = deck.ToList();
             game.DealCards();
             while(!game.Ended)
             {
                 (game.CurrentPlayer as Mod8HanabiPlayer).DoTurn(ref game);
                 game.NextTurn();
+                if(printMoves)
+                    Console.WriteLine(game);
             }
             return game;
         }

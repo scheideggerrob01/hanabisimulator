@@ -15,7 +15,7 @@ namespace HanabiSimulator
             //var c = Strategies.Logic.PreferredDiscard(game, game.CurrentPlayer);
             //RandomStrategyTest(10000);
             //BasicCheatingStrategy(1000);
-            Mod8Test(10000);
+            Mod8Test(1000);
             Console.ReadLine();
         }
         static void RandomStrategyTest(int trials)
@@ -48,9 +48,13 @@ namespace HanabiSimulator
         {
             float[] scores = new float[trials];
             List<HanabiGame> games = new List<HanabiGame>();
+            List<List<HanabiCard>> decks = new List<List<HanabiCard>>();
             for (int i = 0; i < trials; i++)
             {
-                games.Add(Strategies.BasicMod8Strategy());
+                List<HanabiCard> deck = HanabiGame.GenerateDeck(new char[] { 'r', 'b', 'g', 'y', 'w' }, new int[] { 3, 2, 2, 2, 1 });
+                deck.Shuffle();
+                decks.Add(deck.ToList());
+                games.Add(Strategies.BasicMod8Strategy(deck));
                 scores[i] = games.Last().Score;
             }
             Console.WriteLine(scores.Average());
@@ -60,6 +64,8 @@ namespace HanabiSimulator
             {
                 Console.WriteLine($"{i} {scores.Count(s => s == i)}");
             }
+            var q = games.IndexOf(games.OrderBy(g => g.Score).First());
+            Strategies.BasicMod8Strategy(decks[q], true);
         }
     }
 }
