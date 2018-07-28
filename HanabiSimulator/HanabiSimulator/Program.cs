@@ -15,7 +15,7 @@ namespace HanabiSimulator
             //var c = Strategies.Logic.PreferredDiscard(game, game.CurrentPlayer);
             //RandomStrategyTest(10000);
             //BasicCheatingStrategy(1000);
-            Mod8Test(1000);
+            Mod8Test(10000);
             Console.ReadLine();
         }
         static void RandomStrategyTest(int trials)
