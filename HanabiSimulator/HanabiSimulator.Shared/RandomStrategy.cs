@@ -6,6 +6,17 @@ namespace HanabiSimulator.Shared
 {
     public static partial class Strategies
     {
+        private static HanabiGame SetupGame(List<HanabiCard> deck)
+        {
+            HanabiGame game =  new HanabiGame() { Deck = deck };
+            if (deck == null)
+            {
+                game.CreateDeck();
+                game.ShuffleDeck();
+            }
+            game.DealCards();
+            return game;
+        }
         public static class Logic
         {
             //Discard priorities: 
@@ -91,12 +102,10 @@ namespace HanabiSimulator.Shared
                     {
                         game.DiscardCard(game.CurrentPlayer, discard);
                     }
-
                 }
                 game.NextTurn();
             }
             return game;
         }
-        
     }
 }

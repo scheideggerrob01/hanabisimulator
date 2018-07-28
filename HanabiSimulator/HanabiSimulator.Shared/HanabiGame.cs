@@ -122,6 +122,7 @@ namespace HanabiSimulator.Shared
             DrawCard(player);
             if (IsPlayable(card))
             {
+                Players[player.ID].Action(card, true, true);
                 PlayedCards.Add(card);
                 if (card.Number == highestCard && HintsRemaining < 8)
                     HintsRemaining++;
@@ -133,6 +134,7 @@ namespace HanabiSimulator.Shared
             }
             else
             {
+                Players[player.ID].Action(card, true, false);
                 BombsUsed++;
                 if(BombsUsed >= 4)
                 {
@@ -163,6 +165,13 @@ namespace HanabiSimulator.Shared
                 DeckEmpty = true;
             }
         }
+        public void GiveHint()
+        {
+            if (HintsRemaining == 0)
+                throw new InvalidOperationException("Attempted to give a hint with no hints remaining.");
+            else
+                HintsRemaining--;
+        }
         public string ToPlayerHandString()
         {
             string s = "";
@@ -182,6 +191,7 @@ namespace HanabiSimulator.Shared
             s += $"Deck({Deck.Count}): " + Deck.ToCleanString() + '\n';
             s += ToPlayedDiscardedString() + '\n';
             s += ToPlayerHandString() + '\n';
+            s += $"Hints Remaining: {HintsRemaining} Bombs Used: {BombsUsed}\n";
             return s;
         }
     }
@@ -194,6 +204,32 @@ namespace HanabiSimulator.Shared
         }
         public List<HanabiCard> Hand { get; set; }
         public int ID { get; set; }
+        public static bool operator ==(HanabiPlayer p1, HanabiPlayer p2)
+        {
+            return p1.ID == p2.ID;
+        }
+        public static bool operator !=(HanabiPlayer p1, HanabiPlayer p2)
+        {
+            return p1.ID != p2.ID;
+        }
+        public int PositionInHand(HanabiCard card)
+        {
+            for(int i = 0; i < Hand.Count;i++)
+            {
+                if (Hand[i].Color == card.Color && Hand[i].Number == card.Number)
+                    return i;
+            }
+            return -1;
+        }
+        public delegate void CardPlayed(object sender, CardEventArgs e);
+        public event EventHandler<CardEventArgs> OnCardPlayed;
+        public virtual void Action(HanabiCard card, bool played, bool successful = true) { }
+        
+    }
+    public class CardEventArgs : EventArgs
+    {
+        public HanabiCard Card { get; set; }
+        public bool Successful { get; set; }
     }
     public class HanabiCard
     {

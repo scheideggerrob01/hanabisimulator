@@ -14,7 +14,8 @@ namespace HanabiSimulator
             game.DealCards();
             //var c = Strategies.Logic.PreferredDiscard(game, game.CurrentPlayer);
             //RandomStrategyTest(10000);
-            BasicCheatingStrategy(1000);
+            //BasicCheatingStrategy(1000);
+            Mod8Test(10000);
             Console.ReadLine();
         }
         static void RandomStrategyTest(int trials)
@@ -35,11 +36,27 @@ namespace HanabiSimulator
                 games.Add(Strategies.BasicCheatingStrategy());
                 scores[i] = games.Last().Score;
             }
-            Console.Write(games[10]);
             Console.WriteLine(scores.Average());
             Console.WriteLine(games.OrderBy(g => g.Score).First());
             Console.WriteLine((float)games.Count(g => g.Score == 25) / (float)trials);
             for(int i = (int)scores.Min();i <= scores.Max();i++)
+            {
+                Console.WriteLine($"{i} {scores.Count(s => s == i)}");
+            }
+        }
+        static void Mod8Test(int trials = 100)
+        {
+            float[] scores = new float[trials];
+            List<HanabiGame> games = new List<HanabiGame>();
+            for (int i = 0; i < trials; i++)
+            {
+                games.Add(Strategies.BasicMod8Strategy());
+                scores[i] = games.Last().Score;
+            }
+            Console.WriteLine(scores.Average());
+            Console.WriteLine(games.OrderBy(g => g.Score).First());
+            Console.WriteLine((float)games.Count(g => g.Score == 25) / (float)trials);
+            for (int i = (int)scores.Min(); i <= scores.Max(); i++)
             {
                 Console.WriteLine($"{i} {scores.Count(s => s == i)}");
             }
