@@ -48,9 +48,13 @@ namespace HanabiSimulator
         {
             float[] scores = new float[trials];
             List<HanabiGame> games = new List<HanabiGame>();
+            List<List<HanabiCard>> decks = new List<List<HanabiCard>>();
             for (int i = 0; i < trials; i++)
             {
-                games.Add(Strategies.BasicMod8Strategy());
+                List<HanabiCard> deck = HanabiGame.GenerateDeck(new char[] { 'b', 'r', 'g', 'y', 'w' }, new int[] { 3, 2, 2, 2, 1 });
+                deck.Shuffle();
+                decks.Add(deck.ToList());
+                games.Add(Strategies.BasicMod8Strategy(deck));
                 scores[i] = games.Last().Score;
             }
             Console.WriteLine(scores.Average());
@@ -60,6 +64,8 @@ namespace HanabiSimulator
             {
                 Console.WriteLine($"{i} {scores.Count(s => s == i)}");
             }
+            var q = games.IndexOf(games.OrderBy(g => g.Score).First());
+            //Strategies.BasicMod8Strategy(decks[q], true);
         }
     }
 }

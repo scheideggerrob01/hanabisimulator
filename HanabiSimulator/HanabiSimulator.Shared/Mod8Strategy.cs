@@ -11,21 +11,23 @@ namespace HanabiSimulator.Shared
             public Mod8HanabiPlayer(int playerID) : base(playerID)
             {
                 NextAction = new HanabiAction(HanabiActionType.Hint, null, -1);
+                ShowPlays = false;
             }
+            public bool ShowPlays { get; set; }
             public HanabiAction NextAction { get; set; }
             public void GiveClue(ref HanabiGame game)
             {
                 List<HanabiAction> evaluations = new List<HanabiAction>();
-                foreach(Mod8HanabiPlayer player in game.Players.Where(p => p != this))
+                foreach (Mod8HanabiPlayer player in game.Players.Where(p => p != this))
                 {
                     evaluations.Add(player.EvaluateHand(ref game));
                 }
-                int cluevalue = PosMod(evaluations.Select(e => e.ToMod8Value()).Sum(),8);
-                for(int i = 0; i < game.PlayerCount; i++)
+                int cluevalue = PosMod(evaluations.Select(e => e.ToMod8Value()).Sum(), 8);
+                for (int i = 0; i < game.PlayerCount; i++)
                 {
                     var player = game.Players[i];
-                    if(player != this)
-                        (game.Players[i] as Mod8HanabiPlayer).SetActionFromClue(this,ref game,cluevalue);
+                    if (player != this)
+                        (game.Players[i] as Mod8HanabiPlayer).SetActionFromClue(this, ref game, cluevalue);
                 }
                 game.GiveHint();
                 this.NextAction = new HanabiAction(HanabiActionType.Hint, null, -1);
@@ -33,12 +35,12 @@ namespace HanabiSimulator.Shared
             public void SetActionFromClue(HanabiPlayer cluer, ref HanabiGame game, int clueValue)
             {
                 int seenvalue = 0;
-                foreach(Mod8HanabiPlayer player in game.Players.Where(p => p != this && p != cluer))
+                foreach (Mod8HanabiPlayer player in game.Players.Where(p => p != this && p != cluer))
                 {
                     seenvalue += player.EvaluateHand(ref game).ToMod8Value();
                 }
-                int personalvalue = PosMod((clueValue - seenvalue),8);
-                this.NextAction = HanabiAction.FromMod8Value(this,personalvalue);
+                int personalvalue = PosMod((clueValue - seenvalue), 8);
+                this.NextAction = HanabiAction.FromMod8Value(this, personalvalue);
             }
             public HanabiAction EvaluateHand(ref HanabiGame game)
             {
@@ -51,7 +53,7 @@ namespace HanabiSimulator.Shared
             public int PlaysSeen(ref HanabiGame game)
             {
                 int total = 0;
-                foreach(Mod8HanabiPlayer player in game.Players.Where(p => p != this))
+                foreach (Mod8HanabiPlayer player in game.Players.Where(p => p != this))
                 {
                     total += Logic.PreferredPlay(game, player) == null ? 0 : 1;
                 }
@@ -59,9 +61,9 @@ namespace HanabiSimulator.Shared
             }
             public void DoTurn(ref HanabiGame game)
             {
-                if(this.NextAction.Type == HanabiActionType.Hint)
+                if (this.NextAction.Type == HanabiActionType.Hint)
                 {
-                    if(game.HintsRemaining == 0)
+                    if (game.HintsRemaining == 0)
                     {
                         var discard = Hand[0];
                         game.DiscardCard(this, discard);
@@ -78,7 +80,7 @@ namespace HanabiSimulator.Shared
                 }
                 else // Must be discard
                 {
-                    if(PlaysSeen(ref game) >= 2 && game.HintsRemaining > 0)
+                    if (PlaysSeen(ref game) >= 2 && game.HintsRemaining > 0)
                     {
                         GiveClue(ref game);
                     }
@@ -89,8 +91,14 @@ namespace HanabiSimulator.Shared
                     }
                 }
             }
+            public override void Action(HanabiCard card, bool played, bool successful = true)
+            {
+                if (ShowPlays)
+                    Console.WriteLine($" Player {this.ID} {(played ? "Played" : "Discarded")} {card}. {((successful && played) ? "" : "Card was not playable.")}");
+            }
         }
-        public enum HanabiActionType { Play,Hint,Discard}
+        [Flags]
+        public enum HanabiActionType { Play, Hint, Discard }
         public class HanabiAction
         {
             public HanabiAction(HanabiActionType t, HanabiCard card, int index)
@@ -100,7 +108,7 @@ namespace HanabiSimulator.Shared
                 CardIndex = index;
             }
             public HanabiActionType Type { get; set; }
-            public  HanabiCard Card { get; set; }
+            public HanabiCard Card { get; set; }
             public int CardIndex { get; set; }
             public int ToMod8Value()
             {
@@ -109,9 +117,9 @@ namespace HanabiSimulator.Shared
             public static HanabiAction FromMod8Value(HanabiPlayer player, int value)
             {
                 if (value >= 4)
-                    return new HanabiAction(HanabiActionType.Discard, player.Hand[PosMod(value-4,4)], PosMod(value - 4,4));
+                    return new HanabiAction(HanabiActionType.Discard, player.Hand[PosMod(value - 4, 4)], PosMod(value - 4, 4));
                 else
-                    return new HanabiAction(HanabiActionType.Play, player.Hand[PosMod(value,4)], PosMod(value,4));
+                    return new HanabiAction(HanabiActionType.Play, player.Hand[PosMod(value, 4)], PosMod(value, 4));
             }
         }
         public static int PosMod(int i, int m)
@@ -121,20 +129,27 @@ namespace HanabiSimulator.Shared
             else
                 return i % m + m;
         }
-        public static HanabiGame BasicMod8Strategy(List<HanabiCard> deck = null)
+        public static HanabiGame BasicMod8Strategy(List<HanabiCard> deck = null, bool printMoves = false)
         {
             HanabiGame game = new HanabiGame();
-            for(int i = 0; i < game.PlayerCount;i++)
+            for (int i = 0; i < game.PlayerCount; i++)
             {
-                game.Players[i] = new Mod8HanabiPlayer(i);
+                game.Players[i] = new Mod8HanabiPlayer(i) { ShowPlays = printMoves };
             }
-            game.CreateDeck();
-            game.ShuffleDeck();
+            if (deck == null)
+            {
+                game.CreateDeck();
+                game.ShuffleDeck();
+            }
+            else
+                game.SetDeck(deck);
             game.DealCards();
-            while(!game.Ended)
+            while (!game.Ended)
             {
                 (game.CurrentPlayer as Mod8HanabiPlayer).DoTurn(ref game);
                 game.NextTurn();
+                if (printMoves)
+                    Console.WriteLine(game);
             }
             return game;
         }

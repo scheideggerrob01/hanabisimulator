@@ -43,7 +43,7 @@ namespace HanabiSimulator.Shared
         /// </summary>
         public void CreateDeck()
         {
-            CreateSpecialDeck(new char[] { 'b', 'r', 'g', 'y', 'w' }, new int[]{3,2,2,2,1} );
+            CreateSpecialDeck(new char[] {  'b', 'r', 'g', 'y', 'w' }, new int[]{3,2,2,2,1} );
         }
         public static List<HanabiCard> GenerateDeck(char[] colors, int[] numberDistribution)
         {
@@ -59,6 +59,11 @@ namespace HanabiSimulator.Shared
                 }
             }
             return deck;
+        }
+        public void SetDeck(List<HanabiCard> cards, int highestcard = 5)
+        {
+            Deck = cards;
+            highestCard = highestcard;
         }
         public void CreateSpecialDeck(char[] colors, int[] numberDistribution)
         {
