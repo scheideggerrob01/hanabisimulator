@@ -8,7 +8,7 @@ namespace HanabiSimulator.Shared
     {
         private static HanabiGame SetupGame(List<HanabiCard> deck)
         {
-            HanabiGame game =  new HanabiGame() { Deck = deck };
+            HanabiGame game = new HanabiGame() { Deck = deck };
             if (deck == null)
             {
                 game.CreateDeck();
@@ -20,13 +20,17 @@ namespace HanabiSimulator.Shared
         public static class Logic
         {
             //Discard priorities: 
-            public static HanabiCard PreferredDiscard(HanabiGame game, HanabiPlayer player)
+            public static List<HanabiCard> OrderedDiscards(HanabiGame game, HanabiPlayer player)
             {
-                var discards = player.Hand.OrderByDescending(card => game.PlayedCards.ContainsCard(card))
+                return player.Hand.OrderByDescending(card => game.PlayedCards.ContainsCard(card))
                     .ThenBy(card => IsDangerCard(game, card))
                     .ThenByDescending(card => card.Number)
                     .ThenBy(card => player.Hand.IndexOf(card))
-                    .ToArray();
+                    .ToList();
+            }
+            public static HanabiCard PreferredDiscard(HanabiGame game, HanabiPlayer player)
+            {
+                var discards = OrderedDiscards(game,player);
                 return discards[0];
             }
             public static bool IsDangerCard(HanabiGame g, HanabiCard c)
@@ -47,13 +51,17 @@ namespace HanabiSimulator.Shared
                 else return false;
 
             }
-            public static HanabiCard PreferredPlay(HanabiGame game, HanabiPlayer player)
+            public static List<HanabiCard> OrderedPlays(HanabiGame game, HanabiPlayer player)
             {
-                var playableCards = player.Hand.Where(card => game.IsPlayable(card))
+                return player.Hand.Where(card => game.IsPlayable(card))
                     .OrderBy(card => card.Number)
                     .ThenBy(card => IsDangerCard(game, card))
-                    .ThenByDescending(card => player.Hand.IndexOf(card)).ToArray();
-                if (playableCards.Length == 0)
+                    .ThenByDescending(card => player.Hand.IndexOf(card)).ToList();
+            }
+            public static HanabiCard PreferredPlay(HanabiGame game, HanabiPlayer player)
+            {
+                var playableCards = OrderedPlays(game, player);
+                if (playableCards.Count == 0)
                     return null;
                 else return playableCards[0];
             }
@@ -68,7 +76,7 @@ namespace HanabiSimulator.Shared
             }
             game.DealCards();
             Random rng = new Random();
-            while(!game.Ended)
+            while (!game.Ended)
             {
                 var player = game.CurrentPlayer;
                 var playcard = player.Hand[rng.Next() % player.Hand.Count];
@@ -85,7 +93,7 @@ namespace HanabiSimulator.Shared
                 game.ShuffleDeck();
             }
             game.DealCards();
-            while(!game.Ended)
+            while (!game.Ended)
             {
                 var play = Logic.PreferredPlay(game, game.CurrentPlayer);
                 if (play != null)
@@ -93,8 +101,8 @@ namespace HanabiSimulator.Shared
                 else
                 {
                     var discard = Logic.PreferredDiscard(game, game.CurrentPlayer);
-                    (HanabiCard c1, HanabiCard c2) = (new HanabiCard(discard.Number - 1,discard.Color),new HanabiCard(discard.Number-2, discard.Color));
-                    if (game.Players.Select(p=>p.Hand).Count(h => h.ContainsCard(c1) || h.ContainsCard(c2)) >= 1 && game.HintsRemaining > 0) //If the cards necessary to play this one are in people's hands already.
+                    (HanabiCard c1, HanabiCard c2) = (new HanabiCard(discard.Number - 1, discard.Color), new HanabiCard(discard.Number - 2, discard.Color));
+                    if (game.Players.Select(p => p.Hand).Count(h => h.ContainsCard(c1) || h.ContainsCard(c2)) >= 1 && game.HintsRemaining > 0) //If the cards necessary to play this one are in people's hands already.
                     {
                         game.HintsRemaining--;
                     }

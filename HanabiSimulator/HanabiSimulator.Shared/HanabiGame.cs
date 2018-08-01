@@ -22,6 +22,7 @@ namespace HanabiSimulator.Shared
             KeepLog = false;
             CreatePlayers(players);
         }
+        public int BadClues = 0;
         public List<HanabiPlayer> Players { get; set; }
         public HanabiPlayer CurrentPlayer { get { return Players[PlayerTurn]; } }
         public HanabiPlayer NextPlayer { get { return Players[(PlayerTurn + 1) % PlayerCount]; } }
@@ -128,7 +129,7 @@ namespace HanabiSimulator.Shared
             DrawCard(player);
             if (IsPlayable(card))
             {
-                Players[player.ID].Action(card, true, true);
+                Players[player.ID].Action(this,card, true, true);
                 PlayedCards.Add(card);
                 if (card.Number == highestCard && HintsRemaining < 8)
                     HintsRemaining++;
@@ -140,7 +141,7 @@ namespace HanabiSimulator.Shared
             }
             else
             {
-                Players[player.ID].Action(card, true, false);
+                Players[player.ID].Action(this,card, true, false);
                 BombsUsed++;
                 if(BombsUsed >= 4)
                 {
@@ -153,6 +154,7 @@ namespace HanabiSimulator.Shared
         {
             Players[player.ID].Hand.Remove(card);
             DiscardedCards.Add(card);
+            Players[player.ID].Action(this,card, false);
             DrawCard(player);
             if (HintsRemaining < 8)
             {
@@ -177,6 +179,10 @@ namespace HanabiSimulator.Shared
                 throw new InvalidOperationException("Attempted to give a hint with no hints remaining.");
             else
                 HintsRemaining--;
+        }
+        public bool IsDangerCard(HanabiCard card)
+        {
+            return PlayedCards.Count(c => c.Color == card.Color && c.Number == card.Number) == 1;
         }
         public string ToPlayerHandString()
         {
@@ -220,16 +226,14 @@ namespace HanabiSimulator.Shared
         }
         public int PositionInHand(HanabiCard card)
         {
-            for(int i = 0; i < Hand.Count;i++)
+            for (int i = 0; i < Hand.Count; i++)
             {
                 if (Hand[i].Color == card.Color && Hand[i].Number == card.Number)
                     return i;
             }
             return -1;
         }
-        public delegate void CardPlayed(object sender, CardEventArgs e);
-        public event EventHandler<CardEventArgs> OnCardPlayed;
-        public virtual void Action(HanabiCard card, bool played, bool successful = true) { }
+        public virtual void Action(HanabiGame game, HanabiCard card, bool played, bool successful = true) { }
         
     }
     public class CardEventArgs : EventArgs
@@ -250,6 +254,21 @@ namespace HanabiSimulator.Shared
         {
             return Number.ToString() + Color;
         }
+        
+        /*
+         * public static bool operator ==(HanabiCard c1, HanabiCard c2)
+        {
+            if(c1 is null || c2 is null)
+                return false;
+            return c1.Color == c2.Color && c1.Number == c2.Number;
+        }
+        public static bool operator !=(HanabiCard c1, HanabiCard c2)
+        {
+            if (c1 is null || c2 is null)
+                return false;
+            return c1.Color != c2.Color || c1.Number != c2.Number;
+        }
+        */
     }
     public static class HanabiExtensions
     {

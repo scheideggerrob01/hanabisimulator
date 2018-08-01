@@ -12,11 +12,10 @@ namespace HanabiSimulator.Shared
             {
                 
             }
-            public override void Action(HanabiCard card, bool played, bool successful = true)
+            public override void Action(HanabiGame game, HanabiCard card, bool played, bool successful = true)
             {
-                base.Action(card, played, successful);
+                base.Action(game,card, played, successful);
             }
-
         }
         public static HanabiGame HintingStrategy(List<HanabiCard> deck = null)
         {
