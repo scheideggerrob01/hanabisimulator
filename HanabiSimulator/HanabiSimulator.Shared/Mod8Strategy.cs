@@ -8,10 +8,11 @@ namespace HanabiSimulator.Shared
     {
         public class Mod8HanabiPlayer : HanabiPlayer
         {
-            public Mod8HanabiPlayer(int playerID) : base(playerID)
+            public Mod8HanabiPlayer(int playerID, Mod8Settings settings = null) : base(playerID)
             {
                 NextAction = new HanabiAction(HanabiActionType.Hint, null, -1);
                 ShowPlays = false;
+                Settings = settings ?? new Mod8Settings() { };
             }
             public int[] hints = { 0, 0, 0, 0, 0, 0, 0, 0 };
             public Mod8Settings Settings { get; set; }
@@ -38,7 +39,6 @@ namespace HanabiSimulator.Shared
                 var nnextplayer = game.Players[(game.PlayerTurn + 2) % game.PlayerCount];
                 if (clue % 2 == 1)
                 {
-                    
                     return true;
                 }
                 if(clue >= 4)
@@ -62,7 +62,6 @@ namespace HanabiSimulator.Shared
                         }
                         else return true;
                     }
-                    
                 }
                 else
                 {
@@ -88,8 +87,13 @@ namespace HanabiSimulator.Shared
                 }
 
             }
+            /// <summary>
+            /// Called when someone wants to give a clue on their turn. 
+            /// </summary>
+            /// <param name="game"></param>
             public void GiveClue(ref HanabiGame game)
             {
+                bool cluegiven = false;
                 List<HanabiAction> evaluations = new List<HanabiAction>();
                 foreach (Mod8HanabiPlayer player in game.Players.Where(p => p != this).OrderBy(p => p.ID))
                 {
@@ -98,7 +102,10 @@ namespace HanabiSimulator.Shared
                 
                 int cluevalue = PosMod(evaluations.Select(e => e.ToMod8Value()).Sum(), 8);
                 if (!IsValidClue(ref game, cluevalue))
+                {
                     game.BadClues++;
+                    cluegiven = true;
+                }
                 List<HanabiCard> playcards = new List<HanabiCard>();
                 for (int i = 0; i < game.PlayerCount; i++)
                 {
@@ -107,33 +114,29 @@ namespace HanabiSimulator.Shared
                     {
                         (game.Players[i] as Mod8HanabiPlayer).SetActionFromClue(this, ref game, cluevalue);
                     }
-
                 }
                 hints[cluevalue]++;
                 var cluedplays = evaluations.Where(a => a.Type == HanabiActionType.Play).Select(a => a.Card).ToList();
                 var nextplayer = game.NextPlayer as Mod8HanabiPlayer;
                 if (nextplayer.NextAction.Type == HanabiActionType.Play)
                 {
-                    var playingcards = nextplayer.GetPlayableCards(game);
                     var cluedplay = nextplayer.NextAction.Card;
-                    //List<HanabiCard> collisionCards = new 
                     foreach (HanabiCard card in cluedplays)
                     {
                         if (cluedplays.Count(c => c.Color == card.Color && c.Number == card.Number) >= 2 && nextplayer.NextAction.Card.Color == card.Color && nextplayer.NextAction.Card.Number == card.Number)
                         {
                             HanabiAction[] bad = { nextplayer.NextAction };
-                            LieClue(ref game, nextplayer, bad.ToList());
+                            LieClue(ref game, nextplayer, evaluations);
+                            cluegiven = true;
                             break;
-                            //return;
                         }
                     }
                 }
-                else
-                {
-                    game.GiveHint();
-                    if(ShowPlays)
-                        Console.WriteLine($"Player {ID} gave a hint.");
-                }
+
+                if(ShowPlays && !cluegiven)
+                    Console.WriteLine($"Player {ID} gave a hint.");
+                //Once the hint has been decided, make sure the game uses up a hint
+                game.GiveHint();
                 this.NextAction = new HanabiAction(HanabiActionType.Hint, null, -1);
             }
             public void SetActionFromClue(HanabiPlayer cluer, ref HanabiGame game, int clueValue)
@@ -154,6 +157,12 @@ namespace HanabiSimulator.Shared
                 var discard = Logic.PreferredDiscard(game, this);
                 return new HanabiAction(HanabiActionType.Discard, discard, this.PositionInHand(discard));
             }
+            /// <summary>
+            /// Looks at every player's hand in the game except the current player and checks whether a player has a card that is playable in the
+            /// current game state, and adds 1 to the total if they do.
+            /// </summary>
+            /// <param name="game">The game being played</param>
+            /// <returns>Returns the number of players who have playable card.</returns>
             public int PlaysSeen(ref HanabiGame game)
             {
                 int total = 0;
@@ -174,7 +183,6 @@ namespace HanabiSimulator.Shared
                         return true;
                     }
                 }
-                
                 if (nextplayer.NextAction.Type == HanabiActionType.Play && nextnextplayer.NextAction.Type == HanabiActionType.Play)
                 {
                     if (nextplayer.NextAction.Card.Number == nextnextplayer.NextAction.Card.Number && nextplayer.NextAction.Card.Color == nextnextplayer.NextAction.Card.Color)
@@ -214,7 +222,7 @@ namespace HanabiSimulator.Shared
                 }
                 else if (NextAction.Type == HanabiActionType.Play)
                 {
-                    if (SeesCollision(ref game) && game.HintsRemaining > 0)
+                    if (SeesCollision(ref game) && game.HintsRemaining > 0 && game.BombsUsed >= 2)
                     {
                         GiveClue(ref game);
                     }
@@ -228,7 +236,11 @@ namespace HanabiSimulator.Shared
                 }
                 else // Must be discard
                 {
-                    if ((PlaysSeen(ref game) >= 2 || SeesCollision(ref game)) && game.HintsRemaining > 0)
+                    if(PlaysSeen(ref game) >= 2 && game.HintsRemaining > 0)
+                    {
+                        GiveClue(ref game);
+                    }
+                    else if (SeesCollision(ref game) && game.HintsRemaining > 0)
                     {
                         GiveClue(ref game);
                     }
@@ -246,20 +258,22 @@ namespace HanabiSimulator.Shared
             }
             public void LieClue(ref HanabiGame game, Mod8HanabiPlayer player, List<HanabiAction> badactions)
             {
-                if (ShowPlays)
-                    Console.WriteLine($"Player {ID} lied and gave a hint.");
-                game.GiveHint();
                 var badplays = badactions.Where(a => a.Type == HanabiActionType.Play).Select(a => a.Card).ToList();
                 var plays = player.GetPlayableCards(game).Where(p => badplays.Count(c => c.Number == p.Number && c.Color == p.Color) == 0).ToList();
                 if(plays.Count == 0)
                 {
-                    (game.Players[player.ID] as Mod8HanabiPlayer).NextAction = HanabiAction.FromMod8Value(player, player.NextAction.ToMod8Value() + 4);
+                    var desiredclue = HanabiAction.FromMod8Value(player, player.NextAction.ToMod8Value() + 4);
+                    (game.Players[player.ID] as Mod8HanabiPlayer).NextAction = desiredclue; 
+                    if (ShowPlays)
+                        Console.WriteLine($"Player {ID} lied and gave a hint to Discard { (game.Players[player.ID] as Mod8HanabiPlayer).NextAction.Card}");
                     return;
                 }
                 //var bestplay = Logic.BestPlay(game, plays);
                 else
                 {
                     (game.Players[player.ID] as Mod8HanabiPlayer).NextAction = new HanabiAction(HanabiActionType.Play, plays[0], player.Hand.IndexOf(plays[0]));
+                    if (ShowPlays)
+                        Console.WriteLine($"Player {ID} lied and gave a hint to Play { (game.Players[player.ID] as Mod8HanabiPlayer).NextAction.Card}");
                     return;
                 }
 
@@ -329,7 +343,7 @@ namespace HanabiSimulator.Shared
         {
             HanabiGame game = new HanabiGame();
             game.Players = new List<HanabiPlayer>();
-            for (int i = 0; i < 5; i++)
+            for (int i = 0; i < players; i++)
             {
                 game.Players.Add(new Mod8HanabiPlayer(i) { ShowPlays = printMoves });
             }
@@ -354,6 +368,9 @@ namespace HanabiSimulator.Shared
         {
             public bool PrintMoves { get; set; }
             public bool CollisionLying { get; set; }
+            public bool EnsureProperClues { get; set; }
+            public bool Finesse { get; set; }
+            
 
         }
     }

@@ -80,8 +80,9 @@ namespace HanabiSimulator
             {
                 Console.WriteLine($"{o}: {hints[o]}");
             }
-            var q = games.IndexOf(games.OrderBy(g => g.BombsUsed).Where(g=> g.BombsUsed > 0).Last());
-            Strategies.Mod8Strategy(decks[q], true);
+            var q = games.IndexOf(games.OrderBy(g => g.Score).First());
+            Console.WriteLine(decks[q].ToCleanString());
+            Strategies.Mod8Strategy(decks[q], true,false,4);
         }
         
         static void OGMod8Test(int trials = 100)
