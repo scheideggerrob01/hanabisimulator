@@ -20,17 +20,17 @@ namespace HanabiSimulator.Shared
         public static class Logic
         {
             //Discard priorities: 
-            public static List<HanabiCard> OrderedDiscards(HanabiGame game, HanabiPlayer player)
+            public static IOrderedEnumerable<HanabiCard> OrderedDiscards(HanabiGame game, HanabiPlayer player)
             {
                 return player.Hand.OrderByDescending(card => game.PlayedCards.ContainsCard(card))
                     .ThenBy(card => IsDangerCard(game, card))
+                    .ThenBy(card => player.Hand.Count(p => p.Color == card.Color && p.Number == card.Number) == 2)
                     .ThenByDescending(card => card.Number)
-                    .ThenBy(card => player.Hand.IndexOf(card))
-                    .ToList();
+                    .ThenBy(card => player.Hand.IndexOf(card));
             }
             public static HanabiCard PreferredDiscard(HanabiGame game, HanabiPlayer player)
             {
-                var discards = OrderedDiscards(game,player);
+                var discards = OrderedDiscards(game,player).ToList();
                 return discards[0];
             }
             public static bool IsDangerCard(HanabiGame g, HanabiCard c)
@@ -80,7 +80,7 @@ namespace HanabiSimulator.Shared
             {
                 var player = game.CurrentPlayer;
                 var playcard = player.Hand[rng.Next() % player.Hand.Count];
-                game.PlayCard(player, playcard);
+                game.PlayCard(player, player.Hand.LastIndexOf(playcard));
             }
             return game;
         }
@@ -97,7 +97,7 @@ namespace HanabiSimulator.Shared
             {
                 var play = Logic.PreferredPlay(game, game.CurrentPlayer);
                 if (play != null)
-                    game.PlayCard(game.CurrentPlayer, play);
+                    game.PlayCard(game.CurrentPlayer, game.CurrentPlayer.Hand.IndexOf(play));
                 else
                 {
                     var discard = Logic.PreferredDiscard(game, game.CurrentPlayer);
@@ -108,7 +108,7 @@ namespace HanabiSimulator.Shared
                     }
                     else
                     {
-                        game.DiscardCard(game.CurrentPlayer, discard);
+                        game.DiscardCard(game.CurrentPlayer, game.CurrentPlayer.Hand.IndexOf(discard));
                     }
                 }
                 game.NextTurn();

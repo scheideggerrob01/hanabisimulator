@@ -40,12 +40,14 @@ namespace HanabiSimulator.Shared
         public bool DeckEmpty { get; set; }
         public List<HanabiCard> DiscardedCards { get; set; }
         private int highestCard = 0;
+        public static char[] StdColors = { 'b', 'r', 'g', 'y', 'w' };
+        public static int[] StdNumbers = { 3, 2, 2, 2, 1 };
         /// <summary>
         /// Creates a normal deck with 5 colors and the standard 3-2-2-2-1 number distribution
         /// </summary>
         public void CreateDeck()
         {
-            CreateSpecialDeck(new char[] {  'b', 'r', 'g', 'y', 'w' }, new int[]{3,2,2,2,1} );
+            CreateSpecialDeck(StdColors,StdNumbers);
         }
         public static List<HanabiCard> GenerateDeck(char[] colors, int[] numberDistribution)
         {
@@ -123,9 +125,10 @@ namespace HanabiSimulator.Shared
         /// <param name="player">The player playing the card. Player's hand must con</param>
         /// <param name="card"></param>
         /// <returns></returns>
-        public bool PlayCard(HanabiPlayer player,HanabiCard card)
+        public bool PlayCard(HanabiPlayer player,int cardIndex)
         {
-            Players[GetPlayerID(player)].Hand.Remove(card);
+            var card = Players[player.ID].Hand[cardIndex];
+            Players[GetPlayerID(player)].Hand.RemoveAt(cardIndex);
             DrawCard(player);
             if (IsPlayable(card))
             {
@@ -150,9 +153,10 @@ namespace HanabiSimulator.Shared
                 return false;
             }
         }
-        public void DiscardCard(HanabiPlayer player, HanabiCard card)
+        public void DiscardCard(HanabiPlayer player, int cardIndex)
         {
-            Players[player.ID].Hand.Remove(card);
+            var card = player.Hand[cardIndex];
+            Players[player.ID].Hand.RemoveAt(cardIndex);
             DiscardedCards.Add(card);
             Players[player.ID].Action(this,card, false);
             DrawCard(player);
@@ -291,7 +295,7 @@ namespace HanabiSimulator.Shared
             return false;
         }
         // Shuffle taken from https://stackoverflow.com/questions/273313/randomize-a-listt
-        private static Random rng = new Random();
+        public static Random rng = new Random();
 
         public static void Shuffle<T>(this IList<T> list)
         {
@@ -304,6 +308,19 @@ namespace HanabiSimulator.Shared
                 list[k] = list[n];
                 list[n] = value;
             }
+        }
+        public static List<T> Shuffled<T>(this List<T> list)
+        {
+            int n = list.Count;
+            while (n > 1)
+            {
+                n--;
+                int k = rng.Next(n + 1);
+                T value = list[k];
+                list[k] = list[n];
+                list[n] = value;
+            }
+            return list;
         }
     }
 }

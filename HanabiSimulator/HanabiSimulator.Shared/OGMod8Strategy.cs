@@ -73,7 +73,7 @@ namespace HanabiSimulator.Shared
             {
                 if(NextAction.Type == HanabiActionType.Play)
                 {
-                    game.PlayCard(this, NextAction.Card);
+                    game.PlayCard(this, NextAction.CardIndex);
                     NextAction.Type = HanabiActionType.Hint;
                     NextAction.Card = null;
                     NextAction.CardIndex = -1;
@@ -85,14 +85,14 @@ namespace HanabiSimulator.Shared
                 }
                 else if( NextAction.Type == HanabiActionType.Discard && game.HintsRemaining == 0)
                 {
-                    game.DiscardCard(this, NextAction.Card);
+                    game.DiscardCard(this, NextAction.CardIndex);
                     NextAction.Type = HanabiActionType.Hint;
                     NextAction.Card = null;
                     NextAction.CardIndex = -1;
                 }
                 else
                 {
-                    game.DiscardCard(this, Hand[0]);
+                    game.DiscardCard(this, 0);
                     NextAction.Type = HanabiActionType.Hint;
                     NextAction.Card = null;
                     NextAction.CardIndex = -1;
